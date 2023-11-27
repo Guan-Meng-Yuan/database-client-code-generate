@@ -129,71 +129,21 @@ const removeParentFields = (domainParam: ClassParam) => {
   }
 };
 //生成Java Domain代码
-const genDomain = (
+const genClass = (
   packagePath: string,
   domainName: string,
-  domainParam: ClassParam
+  domainParam: ClassParam,
+  template: string
 ) => {
-  removeParentFields(domainParam);
-  setPackages(domainParam);
   fs.ensureDirSync(packagePath);
   fs.writeFile(
     path.resolve(packagePath, `${domainName}${Java.SUFFIX}`),
-    domainCompile(domainParam),
+    template,
     { flag: "w", encoding: "utf-8" }
   );
 };
-const genController = (
-  packagePath: string,
-  controllerName: string,
-  classParam: ClassParam
-) => {
-  fs.ensureDirSync(packagePath);
-  fs.writeFile(
-    path.resolve(packagePath, `${controllerName}${Java.SUFFIX}`),
-    controllerCompile(classParam),
-    { flag: "w", encoding: "utf-8" }
-  );
-};
-const genServiceInterface = (
-  packagePath: string,
-  serviceInterfaceName: string,
-  classParam: ClassParam
-) => {
-  fs.ensureDirSync(packagePath);
-  fs.writeFile(
-    path.resolve(packagePath, `${serviceInterfaceName}${Java.SUFFIX}`),
-    serviceInterfaceCompile(classParam),
-    { flag: "w", encoding: "utf-8" }
-  );
-};
-const genServiceImpl = (
-  packagePath: string,
-  serviceImplName: string,
-  classParam: ClassParam
-) => {
-  fs.ensureDirSync(packagePath);
-  fs.writeFile(
-    path.resolve(packagePath, `${serviceImplName}${Java.SUFFIX}`),
-    serviceImplCompile(classParam),
-    { flag: "w", encoding: "utf-8" }
-  );
-};
-const genMapper = (
-  packagePath: string,
-  mapperName: string,
-  classParam: ClassParam
-) => {
-  fs.ensureDirSync(packagePath);
-  fs.writeFile(
-    path.resolve(packagePath, `${mapperName}${Java.SUFFIX}`),
-    mapperCompile(classParam),
-    { flag: "w", encoding: "utf-8" }
-  );
-};
-export function activate(context: vscode.ExtensionContext) {
-  // TODO 生成所有表代码
 
+export function activate(context: vscode.ExtensionContext) {
   let genAllCode = vscode.commands.registerCommand(
     "database-client-code-generate.code-gen-all",
     async (node: any) => {
@@ -202,6 +152,14 @@ export function activate(context: vscode.ExtensionContext) {
       );
       //基础包名
       const basePackageName = config.get("javaRootPackage") as string;
+
+      if (!basePackageName) {
+        jumpToSetting(
+          "database-client-code-generate.javaRootPackagePath",
+          "请先配置Java项目基础包名"
+        );
+        return;
+      }
       //domain 包名
       const domainPackageName = config.get("javaDomainPackage") as string;
       // controller包名
@@ -218,14 +176,6 @@ export function activate(context: vscode.ExtensionContext) {
       ) as string;
       //mapper包名
       const mapperPackageName = config.get("javaMapperPackage") as string;
-
-      if (!basePackageName) {
-        jumpToSetting(
-          "database-client-code-generate.javaRootPackagePath",
-          "请先配置Java项目基础包名"
-        );
-        return;
-      }
 
       const workspace = vscode.workspace.workspaceFolders;
       //项目目录地址
@@ -251,193 +201,29 @@ export function activate(context: vscode.ExtensionContext) {
           }
           const tables = await tableItem.getChildren();
           await tables.forEach(async (table: any) => {
-            const tableMeta = table.meta as TableMeta;
-
-            const classBaseName = casePascal(tableMeta.name);
-            const controllerName = `${classBaseName}Controller`;
-            const serviceInterfaceName = `${classBaseName}Api`;
-            const serviceImplName = `${classBaseName}Service`;
-            const mapperName = `${classBaseName}Mapper`;
-            const classParam: ClassParam = {
+            await processTable(
+              table,
               basePackageName,
-              domainName: classBaseName,
-              domainComment: tableMeta.comment,
               domainPackageName,
-
-              controllerName,
               controllerPackageName,
-              controllerPath: `${caseCamel(tableMeta.name)}s`,
-
               serviceInterfacePackageName,
-              serviceInterfaceName,
-
               serviceImplPackageName,
-              serviceImplName,
-
               mapperPackageName,
-              mapperName,
-
-              fields: [],
-            };
-
-            const columnItems = await table.getColumnNodes();
-            let hasNotNull = false;
-            columnItems.forEach((column: any) => {
-              const columnMeta = column.column as ColumnMeta;
-              if (columnMeta.isNotNull && columnMeta.name !== "id") {
-                hasNotNull = true;
-              }
-              classParam.fields &&
-                classParam.fields.push({
-                  isNotNull: columnMeta.isNotNull,
-                  name:
-                    caseCamel(columnMeta.name) === "isDeleted"
-                      ? "deleted"
-                      : caseCamel(columnMeta.name),
-                  comment: columnMeta.comment,
-                  type: getJavaFieldType(columnMeta),
-                });
-            });
-            classParam.hasNotNull = hasNotNull;
-
-            genDomain(
-              path.resolve(
-                packagePath,
-                domainPackageName && domainPackageName.replaceAll(".", "/")
-              ),
-              classBaseName,
-              classParam
-            );
-            genController(
-              path.resolve(
-                packagePath,
-                controllerPackageName &&
-                  controllerPackageName.replaceAll(".", "/")
-              ),
-              controllerName,
-              classParam
-            );
-            genServiceInterface(
-              path.resolve(
-                packagePath,
-                serviceInterfacePackageName &&
-                  serviceInterfacePackageName.replaceAll(".", "/")
-              ),
-              serviceInterfaceName,
-              classParam
-            );
-            genServiceImpl(
-              path.resolve(
-                packagePath,
-                serviceImplPackageName &&
-                  serviceImplPackageName.replaceAll(".", "/")
-              ),
-              serviceImplName,
-              classParam
-            );
-            genMapper(
-              path.resolve(
-                packagePath,
-                mapperPackageName && mapperPackageName.replaceAll(".", "/")
-              ),
-              mapperName,
-              classParam
+              packagePath
             );
           });
           vscode.window.showInformationMessage("代码生成成功");
           break;
         case "table":
-          const tableMeta = node.meta as TableMeta;
-          const classBaseName = casePascal(tableMeta.name);
-          const controllerName = `${classBaseName}Controller`;
-          const serviceInterfaceName = `${classBaseName}Api`;
-          const serviceImplName = `${classBaseName}Service`;
-          const mapperName = `${classBaseName}Mapper`;
-          const classParam: ClassParam = {
+          await processTable(
+            node,
             basePackageName,
-
-            domainName: classBaseName,
-            domainComment: tableMeta.comment,
             domainPackageName,
-
-            controllerName,
             controllerPackageName,
-            controllerPath: `${caseCamel(tableMeta.name)}s`,
-
             serviceInterfacePackageName,
-            serviceInterfaceName,
-
             serviceImplPackageName,
-            serviceImplName,
-
             mapperPackageName,
-            mapperName,
-
-            fields: [],
-          };
-
-          const columnItems = await node.getColumnNodes();
-          let hasNotNull = false;
-          columnItems.forEach((column: any) => {
-            const columnMeta = column.column as ColumnMeta;
-            if (columnMeta.isNotNull && columnMeta.name !== "id") {
-              hasNotNull = true;
-            }
-            classParam.fields &&
-              classParam.fields.push({
-                name:
-                  caseCamel(columnMeta.name) === "isDeleted"
-                    ? "deleted"
-                    : caseCamel(columnMeta.name),
-                comment: columnMeta.comment,
-                type: getJavaFieldType(columnMeta),
-                isNotNull: columnMeta.isNotNull,
-              });
-          });
-          classParam.hasNotNull = hasNotNull;
-
-          genDomain(
-            path.resolve(
-              packagePath,
-              domainPackageName && domainPackageName.replaceAll(".", "/")
-            ),
-            classBaseName,
-            classParam
-          );
-          genController(
-            path.resolve(
-              packagePath,
-              controllerPackageName &&
-                controllerPackageName.replaceAll(".", "/")
-            ),
-            controllerName,
-            classParam
-          );
-          genServiceInterface(
-            path.resolve(
-              packagePath,
-              serviceInterfacePackageName &&
-                serviceInterfacePackageName.replaceAll(".", "/")
-            ),
-            serviceInterfaceName,
-            classParam
-          );
-          genServiceImpl(
-            path.resolve(
-              packagePath,
-              serviceImplPackageName &&
-                serviceImplPackageName.replaceAll(".", "/")
-            ),
-            serviceImplName,
-            classParam
-          );
-          genMapper(
-            path.resolve(
-              packagePath,
-              mapperPackageName && mapperPackageName.replaceAll(".", "/")
-            ),
-            mapperName,
-            classParam
+            packagePath
           );
           vscode.window.showInformationMessage("代码生成成功");
           break;
@@ -456,6 +242,116 @@ export function activate(context: vscode.ExtensionContext) {
     });
   };
 }
+
+const processTable = async (
+  table: any,
+  basePackageName: string,
+  domainPackageName: string,
+  controllerPackageName: string,
+  serviceInterfacePackageName: string,
+  serviceImplPackageName: string,
+  mapperPackageName: string,
+  packagePath: string
+) => {
+  const tableMeta = table.meta as TableMeta;
+
+  const classBaseName = casePascal(tableMeta.name);
+  const controllerName = `${classBaseName}Controller`;
+  const serviceInterfaceName = `${classBaseName}Api`;
+  const serviceImplName = `${classBaseName}Service`;
+  const mapperName = `${classBaseName}Mapper`;
+  const classParam: ClassParam = {
+    basePackageName,
+    domainName: classBaseName,
+    domainComment: tableMeta.comment,
+    domainPackageName,
+
+    controllerName,
+    controllerPackageName,
+    controllerPath: `${caseCamel(tableMeta.name)}s`,
+
+    serviceInterfacePackageName,
+    serviceInterfaceName,
+
+    serviceImplPackageName,
+    serviceImplName,
+
+    mapperPackageName,
+    mapperName,
+
+    fields: [],
+  };
+
+  const columnItems = await table.getColumnNodes();
+  let hasNotNull = false;
+  columnItems.forEach((column: any) => {
+    const columnMeta = column.column as ColumnMeta;
+    if (columnMeta.isNotNull && columnMeta.name !== "id") {
+      hasNotNull = true;
+    }
+    classParam.fields &&
+      classParam.fields.push({
+        isNotNull: columnMeta.isNotNull,
+        name:
+          caseCamel(columnMeta.name) === "isDeleted"
+            ? "deleted"
+            : caseCamel(columnMeta.name),
+        comment: columnMeta.comment,
+        type: getJavaFieldType(columnMeta),
+      });
+  });
+  classParam.hasNotNull = hasNotNull;
+
+  removeParentFields(classParam);
+  setPackages(classParam);
+  genClass(
+    path.resolve(
+      packagePath,
+      domainPackageName && domainPackageName.replaceAll(".", "/")
+    ),
+    classBaseName,
+    classParam,
+    domainCompile(classParam)
+  );
+
+  genClass(
+    path.resolve(
+      packagePath,
+      controllerPackageName && controllerPackageName.replaceAll(".", "/")
+    ),
+    controllerName,
+    classParam,
+    controllerCompile(classParam)
+  );
+  genClass(
+    path.resolve(
+      packagePath,
+      serviceInterfacePackageName &&
+        serviceInterfacePackageName.replaceAll(".", "/")
+    ),
+    serviceInterfaceName,
+    classParam,
+    serviceInterfaceCompile(classParam)
+  );
+  genClass(
+    path.resolve(
+      packagePath,
+      serviceImplPackageName && serviceImplPackageName.replaceAll(".", "/")
+    ),
+    serviceImplName,
+    classParam,
+    serviceImplCompile(classParam)
+  );
+  genClass(
+    path.resolve(
+      packagePath,
+      mapperPackageName && mapperPackageName.replaceAll(".", "/")
+    ),
+    mapperName,
+    classParam,
+    mapperCompile(classParam)
+  );
+};
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
