@@ -1,4 +1,4 @@
-# sqltools-code-generate README
+# database-client-code-generate README
 
 [DataBase Client 插件代码生成器](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-database-client2)
 
