@@ -2,13 +2,33 @@
   "name": "database-client-code-generate",
   "displayName": "Database Client Code Generate",
   "description": "DatabaseClient代码生成器",
+  "publisher": "guanmengyuan",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.84.0"
   },
   "categories": [
+    "Programming Languages",
     "Other"
   ],
+  "keywords": [
+    "DataBase",
+    "Mybatis",
+    "Mybatis-flex",
+    "Spring",
+    "SpringBoot",
+    "Java",
+    "Vue",
+    "Generate"
+  ],
+  "bugs": {
+    "url": "https://github.com/Guan-Meng-Yuan/database-client-code-generate/issues"
+  },
+  "homepage": "https://github.com/Guan-Meng-Yuan/database-client-code-generate/blob/main/README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Guan-Meng-Yuan/database-client-code-generate.git"
+  },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -57,7 +77,7 @@
     "commands": [
       {
         "command": "database-client-code-generate.code-gen-all",
-        "title": "生成所有代码"
+        "title": "生成Java代码"
       }
     ],
     "menus": {
