@@ -15,10 +15,6 @@
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
 - `database-client-code-generate.javaRootPackage`: JavaRootPackagePath `example: com.example.demo`
@@ -35,6 +31,10 @@ This extension contributes the following settings:
   - default: `mapper`
 
 ## Release Notes
+
+### 0.1.1
+
+update readme
 
 ### 0.0.1
 
