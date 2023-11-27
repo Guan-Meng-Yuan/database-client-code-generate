@@ -1,0 +1,104 @@
+{
+  "name": "database-client-code-generate",
+  "displayName": "Database Client Code Generate",
+  "description": "DatabaseClient代码生成器",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "DataBase Client 代码生成器",
+      "properties": {
+        "database-client-code-generate.javaRootPackage": {
+          "type": "string",
+          "description": "Java项目基础包名"
+        },
+        "database-client-code-generate.javaDomainPackage": {
+          "type": "string",
+          "default": "model.domain",
+          "description": "Java项目 Domain包名"
+        },
+        "database-client-code-generate.javaControllerPackage": {
+          "type": "string",
+          "default": "controller",
+          "description": "Java项目 Controller包名"
+        },
+        "database-client-code-generate.javaServiceInterfacePackage": {
+          "type": "string",
+          "default": "api",
+          "description": "Java项目 service接口包名"
+        },
+        "database-client-code-generate.javaServiceImplPackage": {
+          "type": "string",
+          "default": "service",
+          "description": "Java项目 service实现包名"
+        },
+        "database-client-code-generate.javaMapperPackage": {
+          "type": "string",
+          "default": "mapper",
+          "description": "Java项目 Mapper包名"
+        },
+        "database-client-code-generate.vueProjectPath": {
+          "type": "string",
+          "description": "Vue项目路径"
+        },
+        "database-client-code-generate.vueApiPath": {
+          "type": "string",
+          "description": "VueApi接口文件路径"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "database-client-code-generate.code-gen-all",
+        "title": "生成所有代码"
+      }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "database-client-code-generate.code-gen-all",
+          "when": "view =~ /cweijan.+?ql/ && (viewItem == database||viewItem == table)",
+          "group": "generate"
+        }
+      ]
+    }
+  },
+  "extensionDependencies": [
+    "cweijan.vscode-database-client2"
+  ],
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@sqltools/base-driver": "^0.1.11",
+    "@sqltools/types": "^0.1.7",
+    "@types/fs-extra": "^11.0.4",
+    "@types/mocha": "^10.0.3",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.84.2",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
+    "@vscode/test-electron": "^2.3.6",
+    "eslint": "^8.52.0",
+    "glob": "^10.3.10",
+    "mocha": "^10.2.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@zerodep/case": "^2.0.5",
+    "fs-extra": "^11.1.1",
+    "handlebars": "^4.7.8"
+  }
+}
