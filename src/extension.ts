@@ -8,6 +8,8 @@ import domainCompile from "./template/domain";
 import serviceInterfaceCompile from "./template/serviceInterface";
 import serviceImplCompile from "./template/serviceImpl";
 import mapperCompile from "./template/mapper";
+import { ModelType } from "./enums";
+
 export function activate(context: vscode.ExtensionContext) {
   let genAllCode = vscode.commands.registerCommand(
     "database-client-code-generate.code-gen-java",
@@ -26,136 +28,153 @@ export function activate(context: vscode.ExtensionContext) {
         );
         return;
       }
-
-      const tables = await getTables(node);
-      if (tables && tables.length > 0) {
-        for (const table of tables) {
-          const tableMeta = table as unknown as TableMeta;
-          const tableName = tableMeta.label;
-          console.log(tableMeta);
-          const importPackages = new Set<string>();
-          let hasNotNull = false;
-          let hasPrimary = false;
-          // 获取列
-          const fields: Field[] = (await tableMeta.getColumnNodes())
-            .map(({ column }) => {
-              const startsWithAny = (str: string, prefixes: string[] = []) =>
-                prefixes.some((prefix) => str.startsWith(prefix));
-              if (
-                config.removeColumnPrefix?.length &&
-                startsWithAny(column.name, config.removeColumnPrefix)
-              ) {
-                column.name = caseSnake(
-                  config.removeColumnPrefix.reduce(
-                    (result, prefix) => result.replace(prefix, ""),
-                    column.name
-                  )
-                );
-              }
-              return column;
-            })
-            .filter(({ name }) => {
-              if (
-                config.javaSupperDomainName &&
-                config.javaSupperDomainClassPackage
-              ) {
-                return !config.javaSupperDomainClassField?.includes(name);
-              }
-              return true;
-            })
-            .map((x) => {
-              if (x.isNotNull) {
-                hasNotNull = x.isNotNull;
-              }
-              if (x.isPrimary) {
-                hasPrimary = x.isPrimary;
-              }
-
-              return {
-                name: caseCamel(x.name),
-                type: getClassType(x.simpleType, x.type, importPackages),
-                comment: x.comment,
-                isNotNull: x.isNotNull,
-                isPrimary: x.isPrimary,
-              };
-            });
-          const className = casePascal(tableName);
-          const classParam = {
-            ...config,
-            fields,
-            className,
-            supperClassName: getSuperClassName(config, className),
-            supperClassNameNoGeneric: getSuperClassNameNoGeneric(config),
-            hasNotNull,
-            hasPrimary,
-            classComment: tableMeta.comment,
-            controllerName: `${className}${config.javaControllerSuffix}`,
-            iServiceName: getSupperInterfaceName(config, className),
-            iServiceNameNoGeneric: getSupperInterfaceNameNoGeneric(config),
-            serviceInterfaceName: `${className}${config.javaServiceInterfaceSuffix}`,
-            baseServiceImplName: getBaseServiceImplName(
-              config,
-              className,
-              `${className}${config.javaMapperSuffix}`
-            ),
-            baseServiceImplNameNoGeneric:
-              getBaseServiceImplNameNoGeneric(config),
-            serviceImplName: `${className}${config.javaServiceImplSuffix}`,
-            mapperName: `${className}${config.javaMapperSuffix}`,
-            baseMapperName: getBaseMapperName(config, className),
-            baseMapperNameNoGeneric: getBaseMapperNameNoGeneric(config),
-            controllerPath: `${caseCamel(className)}s`,
-            baseControllerName: getBaseController(
-              config,
-              className,
-              `${className}${config.javaServiceInterfaceSuffix}`
-            ),
-            baseControllerNameNoGeneric: getBaseControllerNoGeneric(config),
-            importPackages,
-          };
-          //生成controller
-          const controllerContent = controllerCompile(classParam);
-          genClass(
-            workspacePath,
-            controllerContent,
-            classParam.controllerName,
-            `${config.javaRootPackage}.${config.javaControllerPackage}`
-          );
-          const domainContent = domainCompile(classParam);
-          genClass(
-            workspacePath,
-            domainContent,
-            classParam.className,
-            `${config.javaRootPackage}.${config.javaDomainPackage}`
-          );
-          const serviceInterfaceContent = serviceInterfaceCompile(classParam);
-          genClass(
-            workspacePath,
-            serviceInterfaceContent,
-            classParam.serviceInterfaceName,
-            `${config.javaRootPackage}.${config.javaServiceInterfacePackage}`
-          );
-          const serviceImplContent = serviceImplCompile(classParam);
-          genClass(
-            workspacePath,
-            serviceImplContent,
-            classParam.serviceImplName,
-            `${config.javaRootPackage}.${config.javaServiceImplPackage}`
-          );
-          const mapperContent = mapperCompile(classParam);
-          genClass(
-            workspacePath,
-            mapperContent,
-            classParam.mapperName,
-            `${config.javaRootPackage}.${config.javaMapperPackage}`
-          );
-          vscode.window.showInformationMessage("Java代码生成成功!");
-        }
+      switch (node.contextValue) {
+        case ModelType.SCHEMA:
+          genAllTable(node, config, workspacePath);
+          break;
+        case ModelType.TABLE:
+          const tableMeta = node as unknown as TableMeta;
+          genOneTable(tableMeta, config, workspacePath);
       }
+
+      vscode.window.showInformationMessage("Java代码生成成功!");
     }
   );
   context.subscriptions.push(genAllCode);
 }
+const genOneTable = async (
+  tableMeta: TableMeta,
+  config: Config,
+  workspacePath: string
+) => {
+  const tableName = tableMeta.label;
+  const importPackages = new Set<string>();
+  let hasNotNull = false;
+  let hasPrimary = false;
+  // 获取列
+  const fields: Field[] = (await tableMeta.getColumnNodes())
+    .map(({ column }) => {
+      const startsWithAny = (str: string, prefixes: string[] = []) =>
+        prefixes.some((prefix) => str.startsWith(prefix));
+      if (
+        config.removeColumnPrefix?.length &&
+        startsWithAny(column.name, config.removeColumnPrefix)
+      ) {
+        column.name = caseSnake(
+          config.removeColumnPrefix.reduce(
+            (result, prefix) => result.replace(prefix, ""),
+            column.name
+          )
+        );
+      }
+      return column;
+    })
+    .filter(({ name }) => {
+      if (config.javaSupperDomainName && config.javaSupperDomainClassPackage) {
+        return !config.javaSupperDomainClassField?.includes(name);
+      }
+      return true;
+    })
+    .map((x) => {
+      if (x.isNotNull) {
+        hasNotNull = x.isNotNull;
+      }
+      if (x.isPrimary) {
+        hasPrimary = x.isPrimary;
+      }
+
+      return {
+        name: caseCamel(x.name),
+        type: getClassType(x.simpleType, x.type, importPackages),
+        comment: x.comment,
+        isNotNull: x.isNotNull,
+        isPrimary: x.isPrimary,
+      };
+    });
+  const className = casePascal(tableName);
+  const classParam = {
+    ...config,
+    fields,
+    className,
+    supperClassName: getSuperClassName(config, className),
+    supperClassNameNoGeneric: getSuperClassNameNoGeneric(config),
+    hasNotNull,
+    hasPrimary,
+    classComment: tableMeta.comment,
+    controllerName: `${className}${config.javaControllerSuffix}`,
+    iServiceName: getSupperInterfaceName(config, className),
+    iServiceNameNoGeneric: getSupperInterfaceNameNoGeneric(config),
+    serviceInterfaceName: `${className}${config.javaServiceInterfaceSuffix}`,
+    baseServiceImplName: getBaseServiceImplName(
+      config,
+      className,
+      `${className}${config.javaMapperSuffix}`
+    ),
+    baseServiceImplNameNoGeneric: getBaseServiceImplNameNoGeneric(config),
+    serviceImplName: `${className}${config.javaServiceImplSuffix}`,
+    mapperName: `${className}${config.javaMapperSuffix}`,
+    baseMapperName: getBaseMapperName(config, className),
+    baseMapperNameNoGeneric: getBaseMapperNameNoGeneric(config),
+    controllerPath: `${caseCamel(className)}s`,
+    baseControllerName: getBaseController(
+      config,
+      className,
+      `${className}${config.javaServiceInterfaceSuffix}`
+    ),
+    baseControllerNameNoGeneric: getBaseControllerNoGeneric(config),
+    importPackages,
+  };
+  //生成controller
+  const controllerContent = controllerCompile(classParam);
+  genClass(
+    workspacePath,
+    controllerContent,
+    classParam.controllerName,
+    `${config.javaRootPackage}.${config.javaControllerPackage}`
+  );
+  const domainContent = domainCompile(classParam);
+  genClass(
+    workspacePath,
+    domainContent,
+    classParam.className,
+    `${config.javaRootPackage}.${config.javaDomainPackage}`
+  );
+  const serviceInterfaceContent = serviceInterfaceCompile(classParam);
+  genClass(
+    workspacePath,
+    serviceInterfaceContent,
+    classParam.serviceInterfaceName,
+    `${config.javaRootPackage}.${config.javaServiceInterfacePackage}`
+  );
+  const serviceImplContent = serviceImplCompile(classParam);
+  genClass(
+    workspacePath,
+    serviceImplContent,
+    classParam.serviceImplName,
+    `${config.javaRootPackage}.${config.javaServiceImplPackage}`
+  );
+  const mapperContent = mapperCompile(classParam);
+  genClass(
+    workspacePath,
+    mapperContent,
+    classParam.mapperName,
+    `${config.javaRootPackage}.${config.javaMapperPackage}`
+  );
+};
+const genAllTable = async (
+  node: Node,
+  config: Config,
+  workspacePath: string
+) => {
+  const tables = await getTables(node);
+  if (tables && tables.length > 0) {
+    for (const table of tables) {
+      const tableMeta = table as unknown as TableMeta;
+      genOneTable(tableMeta, config, workspacePath);
+    }
+  }
+};
+
 const getBaseMapperName = (config: Config, className: String) => {
   if (config.javaBaseMapperName && config.javaBaseMapperPackage) {
     let match = config.javaBaseMapperName.match(/<([^>]+)>/);
