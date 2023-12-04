@@ -3,7 +3,7 @@
   "displayName": "Database Client Code Generate",
   "description": "DatabaseClient代码生成器",
   "publisher": "guanmengyuan",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.84.0"
   },
@@ -35,34 +35,121 @@
     "configuration": {
       "title": "DataBase Client 代码生成器",
       "properties": {
+        "database-client-code-generate.removeColumnPrefix": {
+          "type": "array",
+          "description": "移除列的前缀",
+          "default": [
+            "is"
+          ]
+        },
         "database-client-code-generate.javaRootPackage": {
           "type": "string",
           "description": "Java项目基础包名"
+        },
+        "database-client-code-generate.javaSupperDomainName": {
+          "type": "string",
+          "description": "Java项目 父类Domain类名,如有泛型请添加<T>,如 BaseDomain<T>",
+          "default": "BaseDomain<T>"
+        },
+        "database-client-code-generate.javaSupperDomainClassPackage": {
+          "type": "string",
+          "description": "Java项目 父类Domain包名",
+          "default": "com.guanmengyuan.spring.ex.common.model.domain"
+        },
+        "database-client-code-generate.javaSupperDomainClassField": {
+          "type": "array",
+          "description": "Java项目 父类Domain字段名",
+          "default": [
+            "id",
+            "createTime",
+            "updateTime",
+            "deleted"
+          ]
         },
         "database-client-code-generate.javaDomainPackage": {
           "type": "string",
           "default": "model.domain",
           "description": "Java项目 Domain包名"
         },
+        "database-client-code-generate.javaBaseControllerName": {
+          "type": "string",
+          "default": "BaseController<S, T>",
+          "description": "Java项目 BaseController类名,需要泛型请加<S, T> 泛型说明: S - serviceInterface, T - DomainName"
+        },
+        "database-client-code-generate.javaBaseControllerPackage": {
+          "type": "string",
+          "default": "com.guanmengyuan.spring.ex.web.controller",
+          "description": "Java项目 BaseController包路径"
+        },
         "database-client-code-generate.javaControllerPackage": {
           "type": "string",
           "default": "controller",
           "description": "Java项目 Controller包名"
+        },
+        "database-client-code-generate.javaControllerSuffix": {
+          "type": "string",
+          "default": "Controller",
+          "description": "Java项目 Controller后缀"
         },
         "database-client-code-generate.javaServiceInterfacePackage": {
           "type": "string",
           "default": "api",
           "description": "Java项目 service接口包名"
         },
+        "database-client-code-generate.javaServiceInterfaceSuffix": {
+          "type": "string",
+          "default": "Api",
+          "description": "Java项目 service接口后缀"
+        },
+        "database-client-code-generate.javaIServiceName": {
+          "type": "string",
+          "default": "IService<T>",
+          "description": "Java项目 service接口继承类名名,泛型 T:DomainName"
+        },
+        "database-client-code-generate.javaIServicePackage": {
+          "type": "string",
+          "default": "com.mybatisflex.core.service",
+          "description": "Java项目 service接口继承包名"
+        },
         "database-client-code-generate.javaServiceImplPackage": {
           "type": "string",
           "default": "service",
+          "description": "Java项目 service实现包名"
+        },
+        "database-client-code-generate.javaServiceImplSuffix": {
+          "type": "string",
+          "default": "Service",
+          "description": "Java项目 service实现后缀"
+        },
+        "database-client-code-generate.javaBaseServiceImplName": {
+          "type": "string",
+          "default": "ServiceImpl<M, T>",
+          "description": "Java项目 baseServiceImpl类名 泛型说明: M - Mapper,T - BaseDomain"
+        },
+        "database-client-code-generate.javaBaseServiceImplPackage": {
+          "type": "string",
+          "default": "com.mybatisflex.spring.service.impl",
           "description": "Java项目 service实现包名"
         },
         "database-client-code-generate.javaMapperPackage": {
           "type": "string",
           "default": "mapper",
           "description": "Java项目 Mapper包名"
+        },
+        "database-client-code-generate.javaMapperSuffix": {
+          "type": "string",
+          "default": "Mapper",
+          "description": "Java项目 Mapper包名"
+        },
+        "database-client-code-generate.javaBaseMapperName": {
+          "type": "string",
+          "default": "BaseMapper<T>",
+          "description": "Java项目 BaseMapper类名 T: DomainName"
+        },
+        "database-client-code-generate.javaBaseMapperPackage": {
+          "type": "string",
+          "default": "com.mybatisflex.core",
+          "description": "Java项目 BaseMapper包名"
         },
         "database-client-code-generate.vueProjectPath": {
           "type": "string",
@@ -76,14 +163,14 @@
     },
     "commands": [
       {
-        "command": "database-client-code-generate.code-gen-all",
+        "command": "database-client-code-generate.code-gen-java",
         "title": "生成Java代码"
       }
     ],
     "menus": {
       "view/item/context": [
         {
-          "command": "database-client-code-generate.code-gen-all",
+          "command": "database-client-code-generate.code-gen-java",
           "when": "view =~ /cweijan.+?ql/ && (viewItem == database||viewItem == table)",
           "group": "generate"
         }
