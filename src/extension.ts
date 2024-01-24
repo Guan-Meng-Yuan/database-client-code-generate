@@ -71,7 +71,7 @@ const genOneTable = async (
     })
     .filter(({ name }) => {
       if (config.javaSupperDomainName && config.javaSupperDomainClassPackage) {
-        return !config.javaSupperDomainClassField?.includes(name);
+        return !config.javaSupperDomainClassField?.includes(caseCamel(name));
       }
       return true;
     })

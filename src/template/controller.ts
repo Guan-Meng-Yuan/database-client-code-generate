@@ -13,8 +13,6 @@ import {{javaBaseControllerPackage}}.{{baseControllerNameNoGeneric}};
 {{/if}}
 {{/if}}
 
-import lombok.RequiredArgsConstructor;
-
 {{#if classComment}}
 /**
  * {{classComment}}接口
@@ -22,8 +20,13 @@ import lombok.RequiredArgsConstructor;
 {{/if}}
 @RestController
 @RequestMapping("{{controllerPath}}")
-@RequiredArgsConstructor
 public class {{controllerName}} {{#if javaBaseControllerPackage}}{{#if baseControllerName}}extends {{{baseControllerName}}}{{/if}}{{/if}} {
+
+    {{#if javaBaseControllerPackage}}
+    public {{controllerName}}({{serviceInterfaceName}} service) {
+        super(service);
+    }
+    {{/if}}
 }`;
 const controllerCompile = Handlebars.compile(controllerTemplate);
 export default controllerCompile;
