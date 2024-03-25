@@ -408,7 +408,7 @@ const getClassType = (
     }
     return "Integer";
   }
-  if (simpleType === "bool") {
+  if (simpleType === "bool" || simpleType === "boolean") {
     return "Boolean";
   }
   if (simpleType === "year") {
